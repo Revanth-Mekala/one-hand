@@ -134,7 +134,7 @@ final class Engine {
         // released
         let pending = pendingModifier
         cancelModifierGesture()
-        guard let pending = pending, pending.flag == flag, now - pending.since <= tapMaxSeconds,
+        guard let tapped = pending, tapped.flag == flag, now - tapped.since <= tapMaxSeconds,
               isRemapping, let action = tapActions[flag] else { return }
         perform(action, key: nil)
     }
