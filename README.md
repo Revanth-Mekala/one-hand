@@ -32,8 +32,8 @@ You need the Xcode Command Line Tools (`xcode-select --install`).
 `./build.sh` on its own only builds the app.
 
 The first time it runs, macOS asks for **Accessibility** access. That's how it sees and remaps keys.
-Turn on **One Hand** in System Settings → Privacy & Security → Accessibility. It starts working within a
-couple of seconds, with no restart needed.
+Turn on **One Hand** in System Settings → Privacy & Security → Accessibility. It should start working within
+a couple of seconds. If it doesn't, quit One Hand from the menu bar and open it again.
 
 > The app has an ad-hoc signature, so macOS treats each rebuild as a new app. After you rebuild, remove
 > One Hand from the Accessibility list and add it back.

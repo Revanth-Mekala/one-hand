@@ -82,7 +82,7 @@ final class ShortcutsWindowController: NSWindowController, NSWindowDelegate, NST
         modeLabel.font = .boldSystemFont(ofSize: 14)
         modeButton.target = self
         modeButton.action = #selector(toggleMode)
-        let modeHint = NSTextField(labelWithString: "Hold \(KeyNames.symbol(for: config.toggleKey)) anywhere to toggle. Shortcuts pause while this window is focused.")
+        let modeHint = NSTextField(labelWithString: "Hold \(KeyNames.symbol(for: config.toggleKey)) for \(formatSeconds(config.toggleHoldSeconds)) s anywhere to toggle. Shortcuts pause while this window is focused.")
         modeHint.textColor = .secondaryLabelColor
         modeHint.font = .systemFont(ofSize: 11)
         modeHint.lineBreakMode = .byTruncatingTail
