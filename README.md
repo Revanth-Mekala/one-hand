@@ -17,6 +17,9 @@ is remapped.
 | `⇧ .` | Tab to the right (`⌘⇧]`) |
 | `space` | Scroll down. Hold to keep scrolling. |
 | `u` | Scroll up. Hold to keep scrolling. |
+| hold `m` | App switcher (`⌘Tab`). Keeps ⌘ held until you let go of `m`. |
+| `,` | Next app (`Tab`) while holding `m` |
+| `.` | Previous app (`⇧Tab`) while holding `m` |
 
 The menu bar icon is a hand: an outline when the mode is off, filled and tinted when it's on. You'll also
 hear a short sound when it switches.
@@ -57,6 +60,9 @@ its own (`opt`) means *tap that modifier*. Shifted symbols also work, so `<` is 
 
 - a keystroke: `cmd+c`, `esc`, `cmd+shift+4`, `ctrl+tab`, `cmd+left`
 - `scroll:up`, `scroll:down`, `scroll:left`, `scroll:right` (keeps scrolling while the key is held)
+- `hold:<modifiers>` or `hold:<modifiers>+<key>`: keeps the modifiers pressed for as long as the trigger is
+  held, and taps the key once at the start. Any shortcut you press during the hold gets those modifiers
+  added. For example, `m` → `hold:cmd+tab` with `,` → `tab` gives you the ⌘Tab app switcher.
 - `shell:<command>`, for example `shell:open -a Safari`
 - `toggle`, which switches one-hand mode
 

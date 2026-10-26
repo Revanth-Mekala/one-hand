@@ -27,6 +27,9 @@ struct AppConfig: Codable, Equatable {
         ShortcutEntry(trigger: "shift+.", action: "cmd+shift+]", note: "Tab to the right"),
         ShortcutEntry(trigger: "space", action: "scroll:down", note: "Scroll down (hold)"),
         ShortcutEntry(trigger: "u", action: "scroll:up", note: "Scroll up (hold)"),
+        ShortcutEntry(trigger: "m", action: "hold:cmd+tab", note: "App switcher (hold)"),
+        ShortcutEntry(trigger: ",", action: "tab", note: "Next app while holding m"),
+        ShortcutEntry(trigger: ".", action: "shift+tab", note: "Previous app while holding m"),
     ]
 
     enum CodingKeys: String, CodingKey {
@@ -64,8 +67,13 @@ struct AppConfig: Codable, Equatable {
                 errors.append("Row \(row): can't understand trigger “\(entry.trigger)”.")
                 continue
             }
-            if Action.parse(entry.action) == nil {
+            switch (trigger, Action.parse(entry.action)) {
+            case (_, nil):
                 errors.append("Row \(row): can't understand action “\(entry.action)”.")
+            case (.modifierTap, .hold?):
+                errors.append("Row \(row): a hold action needs a key trigger, not a lone modifier.")
+            default:
+                break
             }
             if !seen.insert(trigger).inserted {
                 errors.append("Row \(row): trigger “\(entry.trigger)” is used more than once.")

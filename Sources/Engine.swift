@@ -40,6 +40,9 @@ final class Engine {
     private var scrollKey: CGKeyCode = 0
     private var scrollStart: TimeInterval = 0
     private var scrollDirection: (dx: Int32, dy: Int32) = (0, 0)
+    /// Modifiers a hold action is keeping down, and the trigger key holding them.
+    private var heldMods: UInt64 = 0
+    private var holdTrigger: CGKeyCode?
     private let source = CGEventSource(stateID: .hidSystemState)
 
     private var isRemapping: Bool { enabled && !paused }
@@ -85,7 +88,10 @@ final class Engine {
     func setEnabled(_ on: Bool) {
         guard on != enabled else { return }
         enabled = on
-        if !on { stopScrolling() }
+        if !on {
+            stopScrolling()
+            releaseHold()
+        }
         NotificationCenter.default.post(name: .oneHandModeChanged, object: self)
     }
 
@@ -103,10 +109,11 @@ final class Engine {
         case .flagsChanged:
             modifiersChanged(event)
             return pass
-        case .keyDown:
-            return keyDown(event) ? nil : pass
-        case .keyUp:
-            return keyUp(event) ? nil : pass
+        case .keyDown, .keyUp:
+            if (type == .keyDown ? keyDown(event) : keyUp(event)) { return nil }
+            // Keys passing through during a hold get the held modifiers too.
+            if heldMods != 0 { event.flags = CGEventFlags(rawValue: event.flags.rawValue | heldMods) }
+            return pass
         default: // mouse click: Option-click etc. is not a tap or a hold
             cancelModifierGesture()
             return pass
@@ -144,6 +151,12 @@ final class Engine {
         cancelModifierGesture()
         let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
 
+        // Let go of a hold whose key-up never reached us (e.g. the tap was briefly disabled).
+        if let trigger = holdTrigger, trigger != code, !CGEventSource.keyState(.hidSystemState, key: trigger) {
+            heldKeys[trigger] = nil
+            releaseHold()
+        }
+
         if event.getIntegerValueField(.keyboardEventAutorepeat) != 0, let action = heldKeys[code] {
             // Holding a keystroke trigger repeats it like the real shortcut would; scrolling is timer-driven.
             if case .keystroke = action { perform(action, key: code) }
@@ -151,7 +164,9 @@ final class Engine {
         }
 
         guard isRemapping else { return false }
-        let combo = KeyCombo(keyCode: code, mods: event.flags.rawValue & KeyCombo.modifierMask)
+        // Our own held modifiers can show up in the event's flags; they aren't part of the trigger.
+        let mods = event.flags.rawValue & KeyCombo.modifierMask & ~heldMods
+        let combo = KeyCombo(keyCode: code, mods: mods)
         guard let action = keyActions[combo] else { return false }
         heldKeys[code] = action
         perform(action, key: code)
@@ -162,6 +177,7 @@ final class Engine {
         let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
         guard heldKeys.removeValue(forKey: code) != nil else { return false }
         if scrollTimer != nil && scrollKey == code { stopScrolling() }
+        if holdTrigger == code { releaseHold() }
         return true
     }
 
@@ -185,14 +201,46 @@ final class Engine {
             try? process.run()
         case .toggleMode:
             setEnabled(!enabled)
+        case .hold(let combo):
+            guard let key = key else { // tap trigger: nothing to hold, so just press it once
+                post(combo)
+                return
+            }
+            releaseHold()
+            holdTrigger = key
+            heldMods = combo.mods
+            postModifiers(combo.mods, down: true)
+            if let code = combo.keyCode { post(KeyCombo(keyCode: code, mods: 0)) }
         }
     }
 
+    /// Posts a key press. While a hold is active its modifiers are added, so "tab" becomes ⌘Tab.
     private func post(_ combo: KeyCombo) {
         guard let code = combo.keyCode else { return }
         for isDown in [true, false] {
             guard let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: isDown) else { continue }
-            event.flags = CGEventFlags(rawValue: combo.mods)
+            event.flags = CGEventFlags(rawValue: combo.mods | heldMods)
+            event.setIntegerValueField(.eventSourceUserData, value: Engine.marker)
+            event.post(tap: .cghidEventTap)
+        }
+    }
+
+    private func releaseHold() {
+        guard heldMods != 0 else { return }
+        let mods = heldMods
+        heldMods = 0
+        holdTrigger = nil
+        postModifiers(mods, down: false)
+    }
+
+    /// Presses or releases modifier keys the way a keyboard does, one flags-changed event per key.
+    private func postModifiers(_ mods: UInt64, down: Bool) {
+        var flags: UInt64 = down ? 0 : mods
+        for (flag, code) in KeyNames.modifierKeys where mods & flag != 0 {
+            guard let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: down) else { continue }
+            if down { flags |= flag } else { flags &= ~flag }
+            event.type = .flagsChanged
+            event.flags = CGEventFlags(rawValue: flags)
             event.setIntegerValueField(.eventSourceUserData, value: Engine.marker)
             event.post(tap: .cghidEventTap)
         }

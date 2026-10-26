@@ -33,10 +33,17 @@ enum Action: Equatable {
     case scroll(dx: Int32, dy: Int32)
     case shell(String)
     case toggleMode
+    /// Holds the modifiers down for as long as the trigger is held, tapping the key (if any) once at the
+    /// start. Other shortcuts pressed meanwhile get the modifiers added, e.g. "hold:cmd+tab" + "tab".
+    case hold(KeyCombo)
 
     static func parse(_ text: String) -> Action? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         let lower = trimmed.lowercased()
+        if lower.hasPrefix("hold:") {
+            guard let combo = KeyNames.parse(String(trimmed.dropFirst(5))), combo.mods != 0 else { return nil }
+            return .hold(combo)
+        }
         if lower.hasPrefix("shell:") {
             let command = String(trimmed.dropFirst(6)).trimmingCharacters(in: .whitespaces)
             return command.isEmpty ? nil : .shell(command)
@@ -154,6 +161,14 @@ enum KeyNames {
         if let code = combo.keyCode { parts.append(namesByCode[code] ?? "key\(code)") }
         return parts.joined(separator: "+")
     }
+
+    /// Left-hand modifier keys, used to press and release modifiers for hold actions.
+    static let modifierKeys: [(flag: UInt64, code: CGKeyCode)] = [
+        (CGEventFlags.maskControl.rawValue, CGKeyCode(kVK_Control)),
+        (CGEventFlags.maskAlternate.rawValue, CGKeyCode(kVK_Option)),
+        (CGEventFlags.maskShift.rawValue, CGKeyCode(kVK_Shift)),
+        (CGEventFlags.maskCommand.rawValue, CGKeyCode(kVK_Command)),
+    ]
 
     /// The modifier flag a left/right modifier key controls, or nil for other keys.
     static func modifierFlag(forKeyCode code: CGKeyCode) -> UInt64? {

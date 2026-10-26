@@ -137,7 +137,8 @@ final class ShortcutsWindowController: NSWindowController, NSWindowDelegate, NST
         let help = NSTextField(wrappingLabelWithString: """
         Trigger: a key with optional modifiers — n, space, shift+, , ctrl+j, f5. A lone modifier (opt) means tap it.
         Action: a keystroke (cmd+c, esc, cmd+shift+4), scroll:up / down / left / right (hold to keep scrolling), \
-        shell:<command>, or toggle. Double-click a cell to edit.
+        hold:<modifiers>[+key] (e.g. hold:cmd+tab keeps ⌘ down while held), shell:<command>, or toggle. \
+        Double-click a cell to edit.
         """)
         help.font = .systemFont(ofSize: 11)
         help.textColor = .secondaryLabelColor
